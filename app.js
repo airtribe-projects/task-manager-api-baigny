@@ -9,6 +9,24 @@ app.use(express.urlencoded({ extended: true }));
 let tasks = taskData.tasks;
 let nextId = tasks.reduce((max, t) => Math.max(max, t.id), 0) + 1;
 
+function validateTask(fields, requireAll = false) {
+    const { title, description, completed } = fields;
+    const errors = {};
+
+    if (requireAll && title === undefined) errors.title = 'title is required';
+    if (requireAll && description === undefined) errors.description = 'description is required';
+    if (requireAll && completed === undefined) errors.completed = 'completed is required';
+
+    if (title !== undefined && (typeof title !== 'string' || title.trim() === ''))
+        errors.title = 'title must be a non-empty string';
+    if (description !== undefined && (typeof description !== 'string' || description.trim() === ''))
+        errors.description = 'description must be a non-empty string';
+    if (completed !== undefined && typeof completed !== 'boolean')
+        errors.completed = 'completed must be a boolean';
+
+    return errors;
+}
+
 app.get('/tasks', (req, res) => {
     res.status(200).json(tasks);
 });
@@ -20,10 +38,9 @@ app.get('/tasks/:id', (req, res) => {
 });
 
 app.post('/tasks', (req, res) => {
+    const errors = validateTask(req.body, true);
+    if (Object.keys(errors).length) return res.status(400).json({ errors });
     const { title, description, completed } = req.body;
-    if (title === undefined || description === undefined || completed === undefined) {
-        return res.status(400).json({ error: 'title, description and completed are required' });
-    }
     const task = { id: nextId++, title, description, completed };
     tasks.push(task);
     res.status(201).json(task);
@@ -32,10 +49,9 @@ app.post('/tasks', (req, res) => {
 app.put('/tasks/:id', (req, res) => {
     const task = tasks.find(t => t.id === parseInt(req.params.id));
     if (!task) return res.status(404).json({ error: 'Task not found' });
+    const errors = validateTask(req.body, false);
+    if (Object.keys(errors).length) return res.status(400).json({ errors });
     const { title, description, completed } = req.body;
-    if (completed !== undefined && typeof completed !== 'boolean') {
-        return res.status(400).json({ error: 'completed must be a boolean' });
-    }
     if (title !== undefined) task.title = title;
     if (description !== undefined) task.description = description;
     if (completed !== undefined) task.completed = completed;
