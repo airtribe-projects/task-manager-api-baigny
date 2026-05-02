@@ -8,9 +8,10 @@ app.use(express.urlencoded({ extended: true }));
 
 let tasks = taskData.tasks;
 let nextId = tasks.reduce((max, t) => Math.max(max, t.id), 0) + 1;
+const PRIORITIES = ['low', 'medium', 'high'];
 
 function validateTask(fields, requireAll = false) {
-    const { title, description, completed } = fields;
+    const { title, description, completed, priority } = fields;
     const errors = {};
 
     if (requireAll && title === undefined) errors.title = 'title is required';
@@ -23,12 +24,32 @@ function validateTask(fields, requireAll = false) {
         errors.description = 'description must be a non-empty string';
     if (completed !== undefined && typeof completed !== 'boolean')
         errors.completed = 'completed must be a boolean';
+    if (priority !== undefined && !PRIORITIES.includes(priority))
+        errors.priority = 'priority must be low, medium or high';
 
     return errors;
 }
 
 app.get('/tasks', (req, res) => {
-    res.status(200).json(tasks);
+    let result = [...tasks];
+
+    if (req.query.completed !== undefined) {
+        const completed = req.query.completed === 'true';
+        result = result.filter(t => t.completed === completed);
+    }
+
+    result.sort((a, b) => a.id - b.id);
+
+    res.status(200).json(result);
+});
+
+app.get('/tasks/priority/:level', (req, res) => {
+    const { level } = req.params;
+    if (!PRIORITIES.includes(level)) {
+        return res.status(400).json({ error: 'priority must be low, medium or high' });
+    }
+    const result = tasks.filter(t => t.priority === level);
+    res.status(200).json(result);
 });
 
 app.get('/tasks/:id', (req, res) => {
@@ -40,8 +61,14 @@ app.get('/tasks/:id', (req, res) => {
 app.post('/tasks', (req, res) => {
     const errors = validateTask(req.body, true);
     if (Object.keys(errors).length) return res.status(400).json({ errors });
-    const { title, description, completed } = req.body;
-    const task = { id: nextId++, title, description, completed };
+    const { title, description, completed, priority } = req.body;
+    const task = {
+        id: nextId++,
+        title,
+        description,
+        completed,
+        priority: priority || 'low'
+    };
     tasks.push(task);
     res.status(201).json(task);
 });
@@ -51,10 +78,11 @@ app.put('/tasks/:id', (req, res) => {
     if (!task) return res.status(404).json({ error: 'Task not found' });
     const errors = validateTask(req.body, false);
     if (Object.keys(errors).length) return res.status(400).json({ errors });
-    const { title, description, completed } = req.body;
+    const { title, description, completed, priority } = req.body;
     if (title !== undefined) task.title = title;
     if (description !== undefined) task.description = description;
     if (completed !== undefined) task.completed = completed;
+    if (priority !== undefined) task.priority = priority || 'low';
     res.status(200).json(task);
 });
 
