@@ -53,7 +53,7 @@ app.get('/tasks/priority/:level', (req, res) => {
 });
 
 app.get('/tasks/:id', (req, res) => {
-    const task = tasks.find(t => t.id === parseInt(req.params.id));
+    const task = tasks.find(t => t.id === parseInt(req.params.id, 10));
     if (!task) return res.status(404).json({ error: 'Task not found' });
     res.status(200).json(task);
 });
@@ -74,7 +74,7 @@ app.post('/tasks', (req, res) => {
 });
 
 app.put('/tasks/:id', (req, res) => {
-    const task = tasks.find(t => t.id === parseInt(req.params.id));
+    const task = tasks.find(t => t.id === parseInt(req.params.id, 10));
     if (!task) return res.status(404).json({ error: 'Task not found' });
     const errors = validateTask(req.body, false);
     if (Object.keys(errors).length) return res.status(400).json({ errors });
@@ -87,7 +87,7 @@ app.put('/tasks/:id', (req, res) => {
 });
 
 app.delete('/tasks/:id', (req, res) => {
-    const index = tasks.findIndex(t => t.id === parseInt(req.params.id));
+    const index = tasks.findIndex(t => t.id === parseInt(req.params.id, 10));
     if (index === -1) return res.status(404).json({ error: 'Task not found' });
     const deleted = tasks.splice(index, 1)[0];
     res.status(200).json(deleted);
@@ -100,6 +100,5 @@ app.listen(port, (err) => {
     console.log(`Server is listening on ${port}`);
 });
 
-
-
 module.exports = app;
+
