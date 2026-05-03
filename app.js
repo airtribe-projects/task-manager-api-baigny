@@ -82,7 +82,7 @@ app.put('/tasks/:id', (req, res) => {
     if (title !== undefined) task.title = title;
     if (description !== undefined) task.description = description;
     if (completed !== undefined) task.completed = completed;
-    if (priority !== undefined) task.priority = priority || 'low';
+    if (priority !== undefined) task.priority = priority;
     res.status(200).json(task);
 });
 
